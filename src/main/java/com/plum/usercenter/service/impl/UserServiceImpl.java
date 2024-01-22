@@ -2,6 +2,7 @@ package com.plum.usercenter.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.plum.usercenter.model.dto.UserAddRequest;
 import com.plum.usercenter.model.vo.LoginUserVO;
 import com.plum.usercenter.service.UserService;
 import com.plum.usercenter.model.entity.User;
@@ -13,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import static com.plum.usercenter.constant.UserConstant.ADMIN_ROLE;
 import static com.plum.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
@@ -108,6 +110,35 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         loginUserVO.setUpdateTime(user.getUpdateTime());
         loginUserVO.setCreateTime(user.getCreateTime());
         return loginUserVO;
+    }
+
+    @Override
+    public long addUser(UserAddRequest userAddRequest, HttpServletRequest request) {
+        User userObj = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        boolean admin = isAdmin(userObj);
+        if (!admin) {
+            return -1;
+        }
+        String userName = userAddRequest.getUserName();
+        String userAccount = userAddRequest.getUserAccount();
+        String userRole = userAddRequest.getUserRole();
+        String userPassword = "123456";
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        User user = new User();
+        user.setUsername(userName);
+        user.setUserAccount(userAccount);
+        user.setUserPassword(encryptPassword);
+        user.setUserRole(userRole);
+        int insert = userMapper.insert(user);
+        if (insert != 1) {
+            return -1;
+        }
+        return user.getId();
+    }
+
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && ADMIN_ROLE.equals(user.getUserRole());
     }
 }
 

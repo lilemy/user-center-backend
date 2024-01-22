@@ -1,5 +1,6 @@
 package com.plum.usercenter.service;
 
+import com.plum.usercenter.model.dto.UserAddRequest;
 import com.plum.usercenter.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plum.usercenter.model.vo.LoginUserVO;
@@ -37,4 +38,21 @@ public interface UserService extends IService<User> {
      * @return 脱敏用户
      */
     LoginUserVO getLoginUserVO(User user);
+
+    /**
+     * 管理员创建用户
+     *
+     * @param userAddRequest 创建用户请求
+     * @param request        用户权限
+     * @return 新用户 id
+     */
+    long addUser(UserAddRequest userAddRequest, HttpServletRequest request);
+
+    /**
+     * 是否为管理员
+     *
+     * @param user 登录用户
+     * @return true -> 管理员
+     */
+    boolean isAdmin(User user);
 }

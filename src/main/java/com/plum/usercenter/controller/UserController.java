@@ -2,6 +2,7 @@ package com.plum.usercenter.controller;
 
 import com.plum.usercenter.common.BaseResponse;
 import com.plum.usercenter.common.ResultUtils;
+import com.plum.usercenter.model.dto.UserAddRequest;
 import com.plum.usercenter.model.dto.UserLoginRequest;
 import com.plum.usercenter.model.dto.UserRegisterRequest;
 import com.plum.usercenter.model.vo.LoginUserVO;
@@ -51,4 +52,17 @@ public class UserController {
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(loginUserVO);
     }
+
+    // 用户增删改查
+
+    // 管理员增加用户
+    @PostMapping("/add")
+    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest, HttpServletRequest request) {
+        if (userAddRequest == null || request == null) {
+            return null;
+        }
+        long result = userService.addUser(userAddRequest, request);
+        return ResultUtils.success(result);
+    }
+
 }
