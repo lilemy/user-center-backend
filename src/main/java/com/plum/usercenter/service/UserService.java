@@ -1,6 +1,7 @@
 package com.plum.usercenter.service;
 
 import com.plum.usercenter.model.dto.UserAddRequest;
+import com.plum.usercenter.model.dto.UserUpdateRequest;
 import com.plum.usercenter.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.plum.usercenter.model.vo.LoginUserVO;
@@ -49,10 +50,39 @@ public interface UserService extends IService<User> {
     long addUser(UserAddRequest userAddRequest, HttpServletRequest request);
 
     /**
+     * 管理员删除用户
+     *
+     * @param id      删除用户id
+     * @param request 用户权限
+     * @return 删除结果
+     */
+    int deleteUser(Long id, HttpServletRequest request);
+
+    /**
+     * 管理员修改用户
+     *
+     * @param updateRequest 更新用户信息
+     * @param request       用户权限
+     * @return 更新结果
+     */
+    int updateUser(UserUpdateRequest updateRequest, HttpServletRequest request);
+
+    /**
+     * 管理员查询用户
+     *
+     * @param id      需要查询用户id
+     * @param request 用户权限
+     * @return 查询用户信息
+     */
+    User getUser(long id, HttpServletRequest request);
+
+    /**
      * 是否为管理员
      *
-     * @param user 登录用户
+     * @param request 登录用户
      * @return true -> 管理员
      */
-    boolean isAdmin(User user);
+    boolean isAdmin(HttpServletRequest request);
+
+
 }

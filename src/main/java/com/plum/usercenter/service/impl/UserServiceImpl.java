@@ -2,7 +2,9 @@ package com.plum.usercenter.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.plum.usercenter.common.DeleteRequest;
 import com.plum.usercenter.model.dto.UserAddRequest;
+import com.plum.usercenter.model.dto.UserUpdateRequest;
 import com.plum.usercenter.model.vo.LoginUserVO;
 import com.plum.usercenter.service.UserService;
 import com.plum.usercenter.model.entity.User;
@@ -11,6 +13,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
@@ -114,21 +117,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public long addUser(UserAddRequest userAddRequest, HttpServletRequest request) {
-        User userObj = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
-        boolean admin = isAdmin(userObj);
+        boolean admin = isAdmin(request);
         if (!admin) {
             return -1;
         }
-        String userName = userAddRequest.getUserName();
-        String userAccount = userAddRequest.getUserAccount();
-        String userRole = userAddRequest.getUserRole();
         String userPassword = "123456";
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        userAddRequest.setUserPassword(encryptPassword);
         User user = new User();
-        user.setUsername(userName);
-        user.setUserAccount(userAccount);
-        user.setUserPassword(encryptPassword);
-        user.setUserRole(userRole);
+        BeanUtils.copyProperties(userAddRequest, user);
         int insert = userMapper.insert(user);
         if (insert != 1) {
             return -1;
@@ -137,7 +134,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public boolean isAdmin(User user) {
+    public int deleteUser(Long id, HttpServletRequest request) {
+        boolean admin = isAdmin(request);
+        if (!admin || id == null) {
+            return -1;
+        }
+        return userMapper.deleteById(id);
+    }
+
+    @Override
+    public int updateUser(UserUpdateRequest updateRequest, HttpServletRequest request) {
+        boolean admin = isAdmin(request);
+        if (!admin || updateRequest == null) {
+            return -1;
+        }
+        User user = new User();
+        BeanUtils.copyProperties(updateRequest, user);
+        return userMapper.updateById(user);
+    }
+
+    @Override
+    public User getUser(long id, HttpServletRequest request) {
+        boolean admin = isAdmin(request);
+        if (!admin || id <= 0) {
+            return null;
+        }
+        return userMapper.selectById(id);
+    }
+
+    @Override
+    public boolean isAdmin(HttpServletRequest request) {
+        User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         return user != null && ADMIN_ROLE.equals(user.getUserRole());
     }
 }
