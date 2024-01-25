@@ -1,14 +1,19 @@
 package com.plum.usercenter.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plum.usercenter.common.DeleteRequest;
+import com.plum.usercenter.constant.PageConstant;
 import com.plum.usercenter.model.dto.UserAddRequest;
+import com.plum.usercenter.model.dto.UserQueryRequest;
 import com.plum.usercenter.model.dto.UserUpdateRequest;
 import com.plum.usercenter.model.vo.LoginUserVO;
 import com.plum.usercenter.service.UserService;
 import com.plum.usercenter.model.entity.User;
 import com.plum.usercenter.mapper.UserMapper;
+import com.plum.usercenter.utils.SqlUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +104,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
+    public boolean userLogout(HttpServletRequest request) {
+        if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
+            return false;
+        }
+        // 移除登录态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return true;
+    }
+
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        // 先判断是否已登录
+        User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (currentUser == null || currentUser.getId() == null) {
+            return null;
+        }
+        // 从数据库查询
+        long userId = currentUser.getId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return null;
+        }
+        return user;
+    }
+
+    @Override
     public LoginUserVO getLoginUserVO(User user) {
         if (user == null) {
             return null;
@@ -160,6 +191,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return null;
         }
         return userMapper.selectById(id);
+    }
+
+    @Override
+    public Wrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            return null;
+        }
+        Long id = userQueryRequest.getId();
+        String username = userQueryRequest.getUsername();
+        String phone = userQueryRequest.getPhone();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq(id != null, "id", id);
+        queryWrapper.eq(StringUtils.isNotBlank(userRole), "user_role", userRole);
+        queryWrapper.like(StringUtils.isNotBlank(username), "username", username);
+        queryWrapper.like(StringUtils.isNotBlank(phone), "phone", phone);
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(PageConstant.SORT_ORDER_ASC), sortField);
+        return queryWrapper;
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.plum.usercenter.service;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.plum.usercenter.model.dto.UserAddRequest;
+import com.plum.usercenter.model.dto.UserQueryRequest;
 import com.plum.usercenter.model.dto.UserUpdateRequest;
 import com.plum.usercenter.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -31,6 +33,21 @@ public interface UserService extends IService<User> {
      * @return 用户信息（脱敏）
      */
     LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
+
+    /**
+     * 用户注销
+     *
+     * @param request 用户登录态
+     * @return 注销状态
+     */
+    boolean userLogout(HttpServletRequest request);
+
+    /**
+     * 获取当前登录用户
+     * @param request 用户登录态
+     * @return 脱敏用户信息
+     */
+    User getLoginUser(HttpServletRequest request);
 
     /**
      * 获取脱敏用户信息
@@ -77,12 +94,19 @@ public interface UserService extends IService<User> {
     User getUser(long id, HttpServletRequest request);
 
     /**
+     * 获取查询条件
+     *
+     * @param userQueryRequest
+     * @return
+     */
+    Wrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
+
+    /**
      * 是否为管理员
      *
      * @param request 登录用户
      * @return true -> 管理员
      */
     boolean isAdmin(HttpServletRequest request);
-
 
 }

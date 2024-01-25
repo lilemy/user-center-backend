@@ -1,12 +1,10 @@
 package com.plum.usercenter.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.plum.usercenter.common.BaseResponse;
 import com.plum.usercenter.common.DeleteRequest;
 import com.plum.usercenter.common.ResultUtils;
-import com.plum.usercenter.model.dto.UserAddRequest;
-import com.plum.usercenter.model.dto.UserLoginRequest;
-import com.plum.usercenter.model.dto.UserRegisterRequest;
-import com.plum.usercenter.model.dto.UserUpdateRequest;
+import com.plum.usercenter.model.dto.*;
 import com.plum.usercenter.model.entity.User;
 import com.plum.usercenter.model.vo.LoginUserVO;
 import com.plum.usercenter.service.UserService;
@@ -53,6 +51,23 @@ public class UserController {
         return ResultUtils.success(loginUserVO);
     }
 
+    // 用户注销
+    @PostMapping("/logout")
+    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        boolean result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
+
+    // 获取当前登录用户
+    @GetMapping("/get/login")
+    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+        return ResultUtils.success(userService.getLoginUserVO(user));
+    }
+
     // 管理员对用户进行增删改查
 
     // 增加用户
@@ -94,5 +109,19 @@ public class UserController {
         }
         User user = userService.getUser(id, request);
         return ResultUtils.success(user);
+    }
+
+    // 分页获取用户
+    @PostMapping("/list/page")
+    public BaseResponse<Page<User>> getUserByPage(@RequestBody UserQueryRequest userQueryRequest, HttpServletRequest request) {
+        boolean admin = userService.isAdmin(request);
+        if (!admin) {
+            return null;
+        }
+        long current = userQueryRequest.getCurrent();
+        long size = userQueryRequest.getPageSize();
+        Page<User> userPage = userService.page(new Page<>(current, size),
+                userService.getQueryWrapper(userQueryRequest));
+        return ResultUtils.success(userPage);
     }
 }
