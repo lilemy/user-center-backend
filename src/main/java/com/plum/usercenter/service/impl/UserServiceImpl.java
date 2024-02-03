@@ -5,9 +5,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.plum.usercenter.common.DeleteRequest;
+import com.plum.usercenter.common.ResultCode;
 import com.plum.usercenter.constant.PageConstant;
+import com.plum.usercenter.exception.BusinessException;
 import com.plum.usercenter.model.dto.UserAddRequest;
 import com.plum.usercenter.model.dto.UserQueryRequest;
+import com.plum.usercenter.model.dto.UserUpdateMyRequest;
 import com.plum.usercenter.model.dto.UserUpdateRequest;
 import com.plum.usercenter.model.vo.LoginUserVO;
 import com.plum.usercenter.service.UserService;
@@ -42,16 +45,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         // 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            return -1;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         if (userAccount.length() < 4) {
-            return -1;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "用户账户过短");
         }
         if (userPassword.length() < 6 || checkPassword.length() < 6) {
-            return -1;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "用户密码过短");
         }
         if (!userPassword.equals(checkPassword)) {
-            return -1;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "两次输入的密码不一致");
         }
         synchronized (userAccount.intern()) {
             // 账户不能重复
@@ -59,7 +62,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             queryWrapper.eq(User::getUserAccount, userAccount);
             Long count = userMapper.selectCount(queryWrapper);
             if (count > 0) {
-                return -1;
+                throw new BusinessException(ResultCode.PARAMS_ERROR, "账号重复");
             }
             // 加密
             String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -69,7 +72,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             user.setUserPassword(encryptPassword);
             int saveResult = userMapper.insert(user);
             if (saveResult != 1) {
-                return -1;
+                throw new BusinessException(ResultCode.SYSTEM_ERROR, "注册失败，数据库错误");
             }
             return user.getId();
         }
@@ -79,13 +82,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         if (userAccount.length() < 4) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "用户账户过短");
         }
         if (userPassword.length() < 6) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "用户密码过短");
         }
         // 加密
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -96,7 +99,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = userMapper.selectOne(queryWrapper);
         // 用户不存在
         if (user == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
         // 记录用户的登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
@@ -106,10 +109,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public boolean userLogout(HttpServletRequest request) {
         if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
-            return false;
+            throw new BusinessException(ResultCode.NOT_LOGIN_ERROR);
         }
         // 移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return true;
+    }
+
+    @Override
+    public boolean userUpdate(UserUpdateMyRequest userUpdateMyRequest, HttpServletRequest request) {
+        User loginUser = getLoginUser(request);
+        User user = new User();
+        BeanUtils.copyProperties(userUpdateMyRequest, user);
+        user.setId(loginUser.getId());
+        int result = userMapper.updateById(user);
+        if (result != 1) {
+            throw new BusinessException(ResultCode.SYSTEM_ERROR, "注册失败，数据库错误");
+        }
         return true;
     }
 
@@ -118,13 +134,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 先判断是否已登录
         User currentUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
         if (currentUser == null || currentUser.getId() == null) {
-            return null;
+            throw new BusinessException(ResultCode.NOT_LOGIN_ERROR);
         }
         // 从数据库查询
         long userId = currentUser.getId();
         User user = userMapper.selectById(userId);
         if (user == null) {
-            return null;
+            throw new BusinessException(ResultCode.NOT_LOGIN_ERROR);
         }
         return user;
     }
@@ -132,7 +148,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public LoginUserVO getLoginUserVO(User user) {
         if (user == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         LoginUserVO loginUserVO = new LoginUserVO();
         loginUserVO.setUsername(user.getUsername());
@@ -150,7 +166,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public long addUser(UserAddRequest userAddRequest, HttpServletRequest request) {
         boolean admin = isAdmin(request);
         if (!admin) {
-            return -1;
+            throw new BusinessException(ResultCode.NO_AUTH_ERROR);
+        }
+        String userAccount = userAddRequest.getUserAccount();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_account", userAccount);
+        Long count = userMapper.selectCount(queryWrapper);
+        if (count > 0) {
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "账号重复");
         }
         String userPassword = "123456";
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -159,7 +182,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         BeanUtils.copyProperties(userAddRequest, user);
         int insert = userMapper.insert(user);
         if (insert != 1) {
-            return -1;
+            throw new BusinessException(ResultCode.SYSTEM_ERROR, "添加失败，数据库错误");
         }
         return user.getId();
     }
@@ -168,7 +191,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public int deleteUser(Long id, HttpServletRequest request) {
         boolean admin = isAdmin(request);
         if (!admin || id == null) {
-            return -1;
+            throw new BusinessException(ResultCode.NO_AUTH_ERROR);
         }
         return userMapper.deleteById(id);
     }
@@ -177,7 +200,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public int updateUser(UserUpdateRequest updateRequest, HttpServletRequest request) {
         boolean admin = isAdmin(request);
         if (!admin || updateRequest == null) {
-            return -1;
+            throw new BusinessException(ResultCode.NO_AUTH_ERROR);
         }
         User user = new User();
         BeanUtils.copyProperties(updateRequest, user);
@@ -188,7 +211,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public User getUser(long id, HttpServletRequest request) {
         boolean admin = isAdmin(request);
         if (!admin || id <= 0) {
-            return null;
+            throw new BusinessException(ResultCode.NO_AUTH_ERROR);
         }
         return userMapper.selectById(id);
     }

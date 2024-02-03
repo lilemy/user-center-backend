@@ -3,7 +3,9 @@ package com.plum.usercenter.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.plum.usercenter.common.BaseResponse;
 import com.plum.usercenter.common.DeleteRequest;
+import com.plum.usercenter.common.ResultCode;
 import com.plum.usercenter.common.ResultUtils;
+import com.plum.usercenter.exception.BusinessException;
 import com.plum.usercenter.model.dto.*;
 import com.plum.usercenter.model.entity.User;
 import com.plum.usercenter.model.vo.LoginUserVO;
@@ -24,13 +26,13 @@ public class UserController {
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         long result = userService.userRegister(userAccount, userPassword, checkPassword);
         return ResultUtils.success(result);
@@ -40,12 +42,12 @@ public class UserController {
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(loginUserVO);
@@ -55,7 +57,7 @@ public class UserController {
     @PostMapping("/logout")
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         if (request == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         boolean result = userService.userLogout(request);
         return ResultUtils.success(result);
@@ -68,13 +70,23 @@ public class UserController {
         return ResultUtils.success(userService.getLoginUserVO(user));
     }
 
+    // 更新个人信息
+    @PostMapping("/update/my")
+    public BaseResponse<Boolean> userUpdate(@RequestBody UserUpdateMyRequest userUpdateMyRequest, HttpServletRequest request) {
+        if (userUpdateMyRequest == null) {
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
+        }
+        boolean result = userService.userUpdate(userUpdateMyRequest, request);
+        return ResultUtils.success(result);
+    }
+
     // 管理员对用户进行增删改查
 
     // 增加用户
     @PostMapping("/add")
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest, HttpServletRequest request) {
         if (userAddRequest == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         long result = userService.addUser(userAddRequest, request);
         return ResultUtils.success(result);
@@ -84,7 +96,7 @@ public class UserController {
     @PostMapping("/delete")
     public BaseResponse<Integer> deleteUserById(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         Long id = deleteRequest.getId();
         int result = userService.deleteUser(id, request);
@@ -95,7 +107,7 @@ public class UserController {
     @PostMapping("/update")
     public BaseResponse<Integer> updateUserById(@RequestBody UserUpdateRequest updateRequest, HttpServletRequest request) {
         if (updateRequest == null) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数为空");
         }
         int result = userService.updateUser(updateRequest, request);
         return ResultUtils.success(result);
@@ -105,7 +117,7 @@ public class UserController {
     @GetMapping("/get")
     public BaseResponse<User> getUserById(long id, HttpServletRequest request) {
         if (id <= 0) {
-            return null;
+            throw new BusinessException(ResultCode.PARAMS_ERROR, "参数错误");
         }
         User user = userService.getUser(id, request);
         return ResultUtils.success(user);
@@ -116,7 +128,7 @@ public class UserController {
     public BaseResponse<Page<User>> getUserByPage(@RequestBody UserQueryRequest userQueryRequest, HttpServletRequest request) {
         boolean admin = userService.isAdmin(request);
         if (!admin) {
-            return null;
+            throw new BusinessException(ResultCode.NO_AUTH_ERROR);
         }
         long current = userQueryRequest.getCurrent();
         long size = userQueryRequest.getPageSize();

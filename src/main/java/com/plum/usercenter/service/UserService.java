@@ -3,6 +3,7 @@ package com.plum.usercenter.service;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.plum.usercenter.model.dto.UserAddRequest;
 import com.plum.usercenter.model.dto.UserQueryRequest;
+import com.plum.usercenter.model.dto.UserUpdateMyRequest;
 import com.plum.usercenter.model.dto.UserUpdateRequest;
 import com.plum.usercenter.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -43,7 +44,17 @@ public interface UserService extends IService<User> {
     boolean userLogout(HttpServletRequest request);
 
     /**
+     * 用户更新个人信息
+     *
+     * @param userUpdateMyRequest 修改信息
+     * @param request             用户登录态
+     * @return 修改情况
+     */
+    boolean userUpdate(UserUpdateMyRequest userUpdateMyRequest, HttpServletRequest request);
+
+    /**
      * 获取当前登录用户
+     *
      * @param request 用户登录态
      * @return 脱敏用户信息
      */
