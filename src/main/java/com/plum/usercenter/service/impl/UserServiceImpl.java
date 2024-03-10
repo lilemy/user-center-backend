@@ -1,10 +1,10 @@
 package com.plum.usercenter.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.plum.usercenter.common.DeleteRequest;
 import com.plum.usercenter.common.ResultCode;
 import com.plum.usercenter.constant.PageConstant;
 import com.plum.usercenter.exception.BusinessException;
@@ -223,16 +223,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         Long id = userQueryRequest.getId();
         String username = userQueryRequest.getUsername();
+        String userAccount = userQueryRequest.getUserAccount();
+        Integer gender = userQueryRequest.getGender();
         String phone = userQueryRequest.getPhone();
+        String email = userQueryRequest.getEmail();
+        String userStatus = userQueryRequest.getUserStatus();
         String userRole = userQueryRequest.getUserRole();
         String sortField = userQueryRequest.getSortField();
         String sortOrder = userQueryRequest.getSortOrder();
+        String underlineSortField = StrUtil.toUnderlineCase(sortField);
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq(id != null, "id", id);
         queryWrapper.eq(StringUtils.isNotBlank(userRole), "user_role", userRole);
+        queryWrapper.eq(gender != null, "gender", gender);
+        queryWrapper.eq(StringUtils.isNotBlank(userStatus), "user_status", userStatus);
         queryWrapper.like(StringUtils.isNotBlank(username), "username", username);
         queryWrapper.like(StringUtils.isNotBlank(phone), "phone", phone);
-        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(PageConstant.SORT_ORDER_ASC), sortField);
+        queryWrapper.like(StringUtils.isNotBlank(email), "email", email);
+        queryWrapper.like(StringUtils.isNotBlank(userAccount), "user_account", userAccount);
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(PageConstant.SORT_ORDER_ASC), underlineSortField);
         return queryWrapper;
     }
 

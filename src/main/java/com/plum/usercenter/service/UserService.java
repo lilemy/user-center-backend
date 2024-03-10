@@ -107,8 +107,8 @@ public interface UserService extends IService<User> {
     /**
      * 获取查询条件
      *
-     * @param userQueryRequest
-     * @return
+     * @param userQueryRequest 获取查询条件
+     * @return 符合条件用户
      */
     Wrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
 
